@@ -97,11 +97,13 @@ class ContextSentryHandler(SentryHandler):
         extends SentryHandler, to capture logs only if
         `sentry_enable_logging` config options set to true
     '''
-
+    def __init__(self, *args, *kwargs):
+        self._client = args[0]
 
     def emit(self, rec):
-        if get_config("INCLUDE_USER_CONTEXT"):
-            client.extra_context(get_user_context())
+        config = get_config()
+        if config["INCLUDE_USER_CONTEXT"]:
+            self._client.extra_context(get_user_context())
         super(ContextSentryHandler, self).emit(rec)
 
 
