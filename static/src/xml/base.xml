@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<templates id="template" xml:space="preserve">
+    <t t-name="ViewManagerRaiseError" t-extend="ViewManagerDebug">
+        <t t-jquery="select.oe_debug_view" t-operation="append">
+            <option value="">Debug!!!!!!!!/</option>
+        </t>
+    </t>
+</templates>

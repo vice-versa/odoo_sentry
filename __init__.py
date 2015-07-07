@@ -40,13 +40,21 @@ from openerp.http import to_jsonable
 
 _logger = logging.getLogger(__name__)
 
-params = request.registry.get('ir.config_parameter')
 
-SENTRY_CLIENT_DSN = params.get_param(request.cr, openerp.SUPERUSER_ID, 'SENTRY_CLIENT_DSN')
-ENABLE_LOGGING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ENABLE_LOGGING')
-ALLOW_ORM_WARNING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ALLOW_ORM_WARNING')
-INCLUDE_USER_CONTEXT = params.get_param(request.cr, openerp.SUPERUSER_ID, 'INCLUDE_USER_CONTEXT')
+def get_config():
+    params = request.registry.get('ir.config_parameter')
 
+    SENTRY_CLIENT_DSN = params.get_param(request.cr, openerp.SUPERUSER_ID, 'SENTRY_CLIENT_DSN')
+    ENABLE_LOGGING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ENABLE_LOGGING')
+    ALLOW_ORM_WARNING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ALLOW_ORM_WARNING')
+    INCLUDE_USER_CONTEXT = params.get_param(request.cr, openerp.SUPERUSER_ID, 'INCLUDE_USER_CONTEXT')
+
+    return {
+        "SENTRY_CLIENT_DSN": SENTRY_CLIENT_DSN,
+        "ENABLE_LOGGING": ENABLE_LOGGING,
+        "ALLOW_ORM_WARNING": ALLOW_ORM_WARNING,
+        "INCLUDE_USER_CONTEXT": INCLUDE_USER_CONTEXT
+    }
 
 def get_user_context():
     '''
@@ -78,7 +86,7 @@ def serialize_exception(e):
         openerp.exceptions.AccessError,
         openerp.exceptions.AccessDenied,
         )):
-        if INCLUDE_USER_CONTEXT:
+        if get_config("INCLUDE_USER_CONTEXT"):
             client.extra_context(get_user_context())
         client.captureException(sys.exc_info())
     return openerp.http.serialize_exception(e)
@@ -90,36 +98,36 @@ class ContextSentryHandler(SentryHandler):
         `sentry_enable_logging` config options set to true
     '''
     def emit(self, rec):
-        if INCLUDE_USER_CONTEXT:
+        if get_config("INCLUDE_USER_CONTEXT"):
             client.extra_context(get_user_context())
         super(ContextSentryHandler, self).emit(rec)
-
-
-client = Client(CLIENT_DSN)
-
-
-if ENABLE_LOGGING:
-    # future enhancement: add exclude loggers option
-    EXCLUDE_LOGGER_DEFAULTS += ('werkzeug', )
-    handler = ContextSentryHandler(client)
-    setup_logging(handler, exclude=EXCLUDE_LOGGER_DEFAULTS)
-
-if ALLOW_ORM_WARNING:
-    openerp.addons.web.controllers.main._serialize_exception = serialize_exception
-    openerp.addons.report.controllers.main._serialize_exception = serialize_exception
-
-# wrap the main wsgi app
-openerp.service.wsgi_server.application = Sentry(openerp.service.wsgi_server.application, client=client)
-
-if INCLUDE_USER_CONTEXT:
-    client.extra_context(get_user_context())
-# fire the first message
-client.captureMessage('Starting Odoo Server')
 
 
 def serialize_exception(e):
 
     tmp = {}
+
+    conf = get_config()
+
+    client = Client(conf["SENTRY_CLIENT_DSN"])
+
+
+    if conf["ENABLE_LOGGING"]:
+    # future enhancement: add exclude loggers option
+        EXCLUDE_LOGGER_DEFAULTS += ('werkzeug', )
+        handler = ContextSentryHandler(client)
+        setup_logging(handler, exclude=conf["EXCLUDE_LOGGER_DEFAULTS"])
+
+    if conf["ALLOW_ORM_WARNING"]:
+        openerp.addons.web.controllers.main._serialize_exception = serialize_exception
+        openerp.addons.report.controllers.main._serialize_exception = serialize_exception
+
+    # wrap the main wsgi app
+    openerp.service.wsgi_server.application = Sentry(openerp.service.wsgi_server.application, client=client)
+
+    if conf["INCLUDE_USER_CONTEXT"]:
+        client.extra_context(get_user_context())
+    # fire the first message
 
     if isinstance(e, openerp.osv.osv.except_osv):
         tmp["exception_type"] = "except_osv"
