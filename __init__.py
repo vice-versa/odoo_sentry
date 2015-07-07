@@ -97,6 +97,8 @@ class ContextSentryHandler(SentryHandler):
         extends SentryHandler, to capture logs only if
         `sentry_enable_logging` config options set to true
     '''
+
+
     def emit(self, rec):
         if get_config("INCLUDE_USER_CONTEXT"):
             client.extra_context(get_user_context())
@@ -116,7 +118,7 @@ def serialize_exception(e):
     # future enhancement: add exclude loggers option
         EXCLUDE_LOGGER_DEFAULTS += ('werkzeug', )
         handler = ContextSentryHandler(client)
-        setup_logging(handler, exclude=conf["EXCLUDE_LOGGER_DEFAULTS"])
+        setup_logging(handler, exclude=EXCLUDE_LOGGER_DEFAULTS)
 
     if conf["ALLOW_ORM_WARNING"]:
         openerp.addons.web.controllers.main._serialize_exception = serialize_exception
