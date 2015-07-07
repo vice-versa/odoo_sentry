@@ -107,6 +107,8 @@ class ContextSentryHandler(SentryHandler):
 
 def serialize_exception(e):
 
+    from raven.conf import setup_logging, EXCLUDE_LOGGER_DEFAULTS
+
     tmp = {}
 
     conf = get_config()
