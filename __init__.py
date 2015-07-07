@@ -42,7 +42,7 @@ _logger = logging.getLogger(__name__)
 
 params = request.registry.get('ir.config_parameter')
 
-CLIENT_DSN = params.get_param(request.cr, openerp.SUPERUSER_ID, 'CLIENT_DSN')
+SENTRY_CLIENT_DSN = params.get_param(request.cr, openerp.SUPERUSER_ID, 'SENTRY_CLIENT_DSN')
 ENABLE_LOGGING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ENABLE_LOGGING')
 ALLOW_ORM_WARNING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ALLOW_ORM_WARNING')
 INCLUDE_USER_CONTEXT = params.get_param(request.cr, openerp.SUPERUSER_ID, 'INCLUDE_USER_CONTEXT')
