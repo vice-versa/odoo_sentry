@@ -82,7 +82,7 @@ def serialize_exception(e):
 
 class ContextSentryHandler(SentryHandler):
     '''
-        extends SentryHandler, to capture logs only if 
+        extends SentryHandler, to capture logs only if
         `sentry_enable_logging` config options set to true
     '''
     def emit(self, rec):
@@ -112,3 +112,59 @@ if INCLUDE_USER_CONTEXT:
     client.extra_context(get_user_context())
 # fire the first message
 client.captureMessage('Starting Odoo Server')
+
+import functools
+import werkzeug
+
+def serialize_exception(f):
+    @functools.wraps(f)
+    def wrap(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception, e:
+            _logger.exception("An exception occured during an http request")
+            ##se = _serialize_exception(e)
+            error = {
+                'code': 200,
+                'message': "Odoo Server Error",
+                'data': "data"
+            }
+            return werkzeug.exceptions.InternalServerError(simplejson.dumps(error))
+    return wrap
+
+openerp.addons.web.controllers.main.serialize_exception = serialize_exception
+
+from openerp.tools import ustr
+from openerp.http import to_jsonable
+
+def serialize_exception(e):
+
+    tmp = {}
+
+    if isinstance(e, openerp.osv.osv.except_osv):
+        tmp["exception_type"] = "except_osv"
+    elif isinstance(e, openerp.exceptions.Warning):
+        tmp["exception_type"] = "warning"
+    elif isinstance(e, openerp.exceptions.AccessError):
+        tmp["exception_type"] = "access_error"
+    elif isinstance(e, openerp.exceptions.AccessDenied):
+        tmp["exception_type"] = "access_denied"
+
+    t = traceback.format_exc()
+
+    if "exception_type" not in tmp:
+        client.captureMessage(t)
+        debug = "Ошибка отправлена разработчикам, они занимаются устранением проблемы"
+    else:
+        debug = t
+
+    tmp.update({
+        "name": type(e).__module__ + "." + type(e).__name__ if type(e).__module__ else type(e).__name__,
+        "debug": debug,
+        "message": ustr(e),
+        "arguments": to_jsonable(e.args),
+    })
+
+    return tmp
+
+openerp.http.serialize_exception = serialize_exception
