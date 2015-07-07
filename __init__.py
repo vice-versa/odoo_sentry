@@ -144,10 +144,10 @@ def serialize_exception(e):
     elif isinstance(e, openerp.exceptions.AccessDenied):
         tmp["exception_type"] = "access_denied"
 
-    t = traceback.format_exc()
+    t = sys.exc_info()
 
     if "exception_type" not in tmp:
-        client.captureMessage(t)
+        client.captureException(t)
         debug = "Ошибка отправлена разработчикам, они занимаются устранением проблемы"
     else:
         debug = t
