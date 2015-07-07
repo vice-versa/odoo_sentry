@@ -35,14 +35,18 @@ from raven.handlers.logging import SentryHandler
 from raven.middleware import Sentry
 from raven.conf import setup_logging, EXCLUDE_LOGGER_DEFAULTS
 
+from openerp.tools import ustr
+from openerp.http import to_jsonable
 
 _logger = logging.getLogger(__name__)
 
+params = request.registry.get('ir.config_parameter')
 
-CLIENT_DSN = config.get('sentry_client_dsn', '').strip()
-ENABLE_LOGGING = config.get('sentry_enable_logging', False)
-ALLOW_ORM_WARNING = config.get('sentry_allow_orm_warning', False)
-INCLUDE_USER_CONTEXT = config.get('sentry_include_context', False)
+CLIENT_DSN = params.get_param(request.cr, openerp.SUPERUSER_ID, 'CLIENT_DSN')
+ENABLE_LOGGING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ENABLE_LOGGING')
+ALLOW_ORM_WARNING = params.get_param(request.cr, openerp.SUPERUSER_ID, 'ALLOW_ORM_WARNING')
+INCLUDE_USER_CONTEXT = params.get_param(request.cr, openerp.SUPERUSER_ID, 'INCLUDE_USER_CONTEXT')
+
 
 def get_user_context():
     '''
@@ -91,7 +95,6 @@ class ContextSentryHandler(SentryHandler):
         super(ContextSentryHandler, self).emit(rec)
 
 
-
 client = Client(CLIENT_DSN)
 
 
@@ -113,29 +116,6 @@ if INCLUDE_USER_CONTEXT:
 # fire the first message
 client.captureMessage('Starting Odoo Server')
 
-import functools
-import werkzeug
-
-def serialize_exception(f):
-    @functools.wraps(f)
-    def wrap(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception, e:
-            _logger.exception("An exception occured during an http request")
-            ##se = _serialize_exception(e)
-            error = {
-                'code': 200,
-                'message': "Odoo Server Error",
-                'data': "data"
-            }
-            return werkzeug.exceptions.InternalServerError(simplejson.dumps(error))
-    return wrap
-
-openerp.addons.web.controllers.main.serialize_exception = serialize_exception
-
-from openerp.tools import ustr
-from openerp.http import to_jsonable
 
 def serialize_exception(e):
 
