@@ -2,8 +2,10 @@
 
 <templates id="template" xml:space="preserve">
     <t t-name="ViewManagerRaiseError" t-extend="ViewManagerDebug">
-        <t t-jquery="select.oe_debug_view" t-operation="append">
-            <option value="">Debug!!!!!!!!/</option>
+        <t t-jquery="oe_debug_view" t-operation="replace">
+            <select class="oe_debug_view">
+                <option value="">Debug!!!!!!!!/</option>
+            </select>
         </t>
     </t>
 </templates>
